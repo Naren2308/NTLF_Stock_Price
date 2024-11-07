@@ -15,6 +15,9 @@
             margin: 0 auto;
             padding-top: 50px;
         }
+        h1 {
+            color: #4CAF50;
+        }
     </style>
 </head>
 <body>
@@ -25,12 +28,15 @@
 </div>
 
 <script>
-    // Fetch prediction data from Flask API
-    fetch('/predict')
+    // Load the prediction data from the predictions.json file
+    fetch("predictions.json")
         .then(response => response.json())
         .then(data => {
             const dates = data.dates;
-            const predictions = data.predictions;
+            const trainPredictions = data.train_predictions;
+            const testPredictions = data.test_predictions;
+            const yTrainActual = data.y_train_actual;
+            const yTestActual = data.y_test_actual;
 
             // Create the chart
             const ctx = document.getElementById("predictionChart").getContext("2d");
@@ -38,14 +44,40 @@
                 type: "line",
                 data: {
                     labels: dates,
-                    datasets: [{
-                        label: "Predicted Price",
-                        data: predictions,
-                        borderColor: "rgba(75, 192, 192, 1)",
-                        backgroundColor: "rgba(75, 192, 192, 0.2)",
-                        fill: true,
-                        borderWidth: 1
-                    }]
+                    datasets: [
+                        {
+                            label: "Actual Train Price",
+                            data: yTrainActual,
+                            borderColor: "blue",
+                            backgroundColor: "rgba(0, 0, 255, 0.2)",
+                            fill: true,
+                            borderWidth: 1
+                        },
+                        {
+                            label: "Predicted Train Price",
+                            data: trainPredictions,
+                            borderColor: "red",
+                            backgroundColor: "rgba(255, 0, 0, 0.2)",
+                            fill: true,
+                            borderWidth: 1
+                        },
+                        {
+                            label: "Actual Test Price",
+                            data: yTestActual,
+                            borderColor: "green",
+                            backgroundColor: "rgba(0, 255, 0, 0.2)",
+                            fill: true,
+                            borderWidth: 1
+                        },
+                        {
+                            label: "Predicted Test Price",
+                            data: testPredictions,
+                            borderColor: "orange",
+                            backgroundColor: "rgba(255, 165, 0, 0.2)",
+                            fill: true,
+                            borderWidth: 1
+                        }
+                    ]
                 },
                 options: {
                     scales: {
