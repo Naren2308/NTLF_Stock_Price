@@ -1,108 +1,52 @@
+<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Netflix Stock Price Prediction</title>
+    <title>Stock Price Prediction</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-        #chartContainer {
-            width: 80%;
-            margin: 0 auto;
-            padding-top: 50px;
-        }
-        h1 {
-            color: #4CAF50;
-        }
-    </style>
 </head>
 <body>
+    <h1>Netflix Stock Price Prediction</h1>
+    <canvas id="stockChart" width="800" height="400"></canvas>
 
-<h1>Netflix Stock Price Prediction</h1>
-<div id="chartContainer">
-    <canvas id="predictionChart"></canvas>
-</div>
+    <script>
+        fetch('/api/predictions')
+            .then(response => response.json())
+            .then(data => {
+                const dates = data.dates;
+                const actualPrices = data.actual;
+                const predictedPrices = data.predicted;
 
-<script>
-    // Load the prediction data from the predictions.json file
-    fetch("predictions.json")
-        .then(response => response.json())
-        .then(data => {
-            const dates = data.dates;
-            const trainPredictions = data.train_predictions;
-            const testPredictions = data.test_predictions;
-            const yTrainActual = data.y_train_actual;
-            const yTestActual = data.y_test_actual;
-
-            // Create the chart
-            const ctx = document.getElementById("predictionChart").getContext("2d");
-            new Chart(ctx, {
-                type: "line",
-                data: {
-                    labels: dates,
-                    datasets: [
-                        {
-                            label: "Actual Train Price",
-                            data: yTrainActual,
-                            borderColor: "blue",
-                            backgroundColor: "rgba(0, 0, 255, 0.2)",
-                            fill: true,
-                            borderWidth: 1
-                        },
-                        {
-                            label: "Predicted Train Price",
-                            data: trainPredictions,
-                            borderColor: "red",
-                            backgroundColor: "rgba(255, 0, 0, 0.2)",
-                            fill: true,
-                            borderWidth: 1
-                        },
-                        {
-                            label: "Actual Test Price",
-                            data: yTestActual,
-                            borderColor: "green",
-                            backgroundColor: "rgba(0, 255, 0, 0.2)",
-                            fill: true,
-                            borderWidth: 1
-                        },
-                        {
-                            label: "Predicted Test Price",
-                            data: testPredictions,
-                            borderColor: "orange",
-                            backgroundColor: "rgba(255, 165, 0, 0.2)",
-                            fill: true,
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    scales: {
-                        x: {
-                            type: "time",
-                            time: {
-                                unit: "day"
+                const ctx = document.getElementById('stockChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [
+                            {
+                                label: 'Actual Price',
+                                data: actualPrices,
+                                borderColor: 'blue',
+                                fill: false
                             },
-                            title: {
-                                display: true,
-                                text: "Date"
+                            {
+                                label: 'Predicted Price',
+                                data: predictedPrices,
+                                borderColor: 'red',
+                                fill: false
                             }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: "Stock Price"
-                            }
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            x: { display: true, title: { display: true, text: 'Date' } },
+                            y: { display: true, title: { display: true, text: 'Price' } }
                         }
                     }
-                }
+                });
             });
-        })
-        .catch(error => console.error("Error loading prediction data:", error));
-</script>
-
+    </script>
 </body>
 </html>
