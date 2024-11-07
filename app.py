@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import json
 
 # Load the dataset
-data = pd.read_csv('/content/NFLX.csv')
+data = pd.read_csv('NFLX.csv')
 
 # Data Preprocessing
 data['Date'] = pd.to_datetime(data['Date'])
