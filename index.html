@@ -25,8 +25,8 @@
 </div>
 
 <script>
-    // Load the prediction data
-    fetch("output.json")
+    // Load the prediction data from Flask backend
+    fetch("/get_predictions")
         .then(response => response.json())
         .then(data => {
             const dates = data.dates;
