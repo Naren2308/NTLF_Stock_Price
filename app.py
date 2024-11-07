@@ -8,8 +8,8 @@ import json
 app = Flask(__name__)
 
 # Load model and scaler
-model = load_model("C:/Users/Administrator/Documents/NLFX-Stock-Prediction/netflix_lstm_model.h5")
-data = pd.read_csv('C:/Users/Administrator/Documents/NLFX-Stock-Prediction/NFLX.csv')
+model = load_model("netflix_lstm_model.h5")
+data = pd.read_csv('NFLX.csv')
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaler.fit(data[['Close']])
 
