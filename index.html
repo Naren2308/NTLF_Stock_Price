@@ -4,100 +4,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Netflix Stock Price Prediction</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<style>
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin-top: 30px;
-}
-
-#metrics {
-    margin-bottom: 20px;
-}
-
-canvas {
-    width: 80%;
-    max-width: 600px;
-}
-</style>
-<body>
-    <h1>Netflix Stock Price Prediction</h1>
-    <div id="metrics">
-        <h3>Evaluation Metrics</h3>
-        <p>Train MSE: <span id="train_mse"></span></p>
-        <p>Train MAE: <span id="train_mae"></span></p>
-        <p>Train R²: <span id="train_r2"></span></p>
-        <p>Test MSE: <span id="test_mse"></span></p>
-        <p>Test MAE: <span id="test_mae"></span></p>
-        <p>Test R²: <span id="test_r2"></span></p>
-    </div>
-    <canvas id="priceChart"></canvas>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/static/app.js"></script>
-    <script>
-        async function fetchMetrics() {
-    const response = await fetch("/metrics");
-    const metrics = await response.json();
-    document.getElementById("train_mse").textContent = metrics.train_mse.toFixed(4);
-    document.getElementById("train_mae").textContent = metrics.train_mae.toFixed(4);
-    document.getElementById("train_r2").textContent = metrics.train_r2.toFixed(4);
-    document.getElementById("test_mse").textContent = metrics.test_mse.toFixed(4);
-    document.getElementById("test_mae").textContent = metrics.test_mae.toFixed(4);
-    document.getElementById("test_r2").textContent = metrics.test_r2.toFixed(4);
-}
-
-async function fetchDataAndPlot() {
-    const response = await fetch("/data");
-    const data = await response.json();
-
-    const ctx = document.getElementById("priceChart").getContext("2d");
-    new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: [...data.train_dates, ...data.test_dates],
-            datasets: [
-                {
-                    label: "Actual Train Price",
-                    data: data.train_actual,
-                    borderColor: "blue",
-                    fill: false
-                },
-                {
-                    label: "Predicted Train Price",
-                    data: data.train_predicted,
-                    borderColor: "red",
-                    fill: false
-                },
-                {
-                    label: "Actual Test Price",
-                    data: data.test_actual,
-                    borderColor: "blue",
-                    borderDash: [5, 5],
-                    fill: false
-                },
-                {
-                    label: "Predicted Test Price",
-                    data: data.test_predicted,
-                    borderColor: "green",
-                    borderDash: [5, 5],
-                    fill: false
-                }
-            ]
-        },
-        options: {
-            scales: {
-                x: { title: { display: true, text: "Date" } },
-                y: { title: { display: true, text: "Price (USD)" } }
-            }
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
         }
-    });
-}
+        #chartContainer {
+            width: 80%;
+            margin: 0 auto;
+            padding-top: 50px;
+        }
+    </style>
+</head>
+<body>
 
-fetchMetrics();
-fetchDataAndPlot();
-    </script>
+<h1>Netflix Stock Price Prediction</h1>
+<div id="chartContainer">
+    <canvas id="predictionChart"></canvas>
+</div>
+
+<script>
+    // Load the prediction data
+    fetch("output.json")
+        .then(response => response.json())
+        .then(data => {
+            const dates = data.dates;
+            const predictions = data.predictions;
+
+            // Create the chart
+            const ctx = document.getElementById("predictionChart").getContext("2d");
+            new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: "Predicted Price",
+                        data: predictions,
+                        borderColor: "rgba(75, 192, 192, 1)",
+                        backgroundColor: "rgba(75, 192, 192, 0.2)",
+                        fill: true,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: "time",
+                            time: {
+                                unit: "month"
+                            },
+                            title: {
+                                display: true,
+                                text: "Date"
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: "Stock Price"
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => console.error("Error loading prediction data:", error));
+</script>
+
 </body>
 </html>
