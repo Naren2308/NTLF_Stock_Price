@@ -1,75 +1,92 @@
 import pandas as pd
 import numpy as np
+import joblib
 from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 import matplotlib.pyplot as plt
-from flask import Flask, render_template, jsonify, request
-import os
 import json
 
-app = Flask(__name__)
+# Load the dataset
+data = pd.read_csv('/content/NFLX.csv')
 
-# Route for serving the main page
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Data Preprocessing
+data['Date'] = pd.to_datetime(data['Date'])
+data.set_index('Date', inplace=True)
 
-# Route for processing and serving predictions
-@app.route('/get_predictions', methods=['GET'])
-def get_predictions():
-    # Load the data (this would be replaced with your actual data processing)
-    data = pd.read_csv('NFLX.csv')
-    data['Date'] = pd.to_datetime(data['Date'])
-    data.set_index('Date', inplace=True)
-    data = data[['Close']]
+# Feature Selection
+data = data[['Close']]
 
-    # Feature Engineering (you might have more feature engineering here)
-    data['5_MA'] = data['Close'].rolling(window=5).mean()
-    data['30_MA'] = data['Close'].rolling(window=30).mean()
-    data.dropna(inplace=True)
+# Feature Engineering
+data['5_MA'] = data['Close'].rolling(window=5).mean()
+data['30_MA'] = data['Close'].rolling(window=30).mean()
+data['Volatility'] = data['Close'].rolling(window=5).std()
+data['Returns'] = data['Close'].pct_change()
 
-    # Normalize data
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    data_scaled = scaler.fit_transform(data)
+# Drop NA values created by rolling calculations
+data.dropna(inplace=True)
 
-    # Prepare data for LSTM
-    lookback = 90
-    X = []
-    y = []
-    for i in range(lookback, len(data_scaled)):
-        X.append(data_scaled[i-lookback:i])
-        y.append(data_scaled[i, 0])
-    X = np.array(X)
-    y = np.array(y)
+# Scale the data
+scaler = MinMaxScaler(feature_range=(0, 1))
+data_scaled = scaler.fit_transform(data)
 
-    # LSTM Model
-    model = Sequential()
-    model.add(LSTM(units=60, return_sequences=True, input_shape=(X.shape[1], X.shape[2])))
-    model.add(Dropout(0.2))
-    model.add(LSTM(units=60, return_sequences=False))
-    model.add(Dropout(0.2))
-    model.add(Dense(units=1))
-    model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(X, y, epochs=50, batch_size=32)
+# Train-test Split
+train_size = int(len(data_scaled) * 0.8)
+train_data = data_scaled[:train_size]
+test_data = data_scaled[train_size:]
 
-    # Make Predictions
-    predictions = model.predict(X)
+# Prepare training data
+lookback = 90
+X_train, y_train = [], []
+X_test, y_test = [], []
 
-    # Inverse transform predictions
-    predictions = scaler.inverse_transform(np.concatenate((predictions, np.zeros((predictions.shape[0], data_scaled.shape[1]-1))), axis=1))[:, 0]
+# Create the training dataset
+for i in range(lookback, len(train_data)):
+    X_train.append(train_data[i-lookback:i])
+    y_train.append(train_data[i, 0])
 
-    # Prepare prediction dates
-    prediction_dates = data.index[lookback:].tolist()
+# Create the testing dataset
+for i in range(lookback, len(test_data)):
+    X_test.append(test_data[i-lookback:i])
+    y_test.append(test_data[i, 0])
 
-    # Create a dictionary with the prediction dates and values
-    prediction_data = {
-        'dates': [date.strftime('%Y-%m-%d') for date in prediction_dates],
-        'predictions': predictions.tolist()
-    }
+# Convert lists to numpy arrays
+X_train, y_train = np.array(X_train), np.array(y_train)
+X_test, y_test = np.array(X_test), np.array(y_test)
 
-    # Return the data as a JSON response
-    return jsonify(prediction_data)
+# LSTM Model
+model = Sequential()
+model.add(LSTM(units=60, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])))
+model.add(Dropout(0.2))
+model.add(LSTM(units=60, return_sequences=False))
+model.add(Dropout(0.2))
+model.add(Dense(units=1))
 
-if __name__ == '__main__':
-    app.run(debug=True)
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(X_train, y_train, epochs=50, batch_size=32)
+
+# Predictions
+train_predictions = model.predict(X_train)
+test_predictions = model.predict(X_test)
+
+# Inverse transform to get actual prices
+train_predictions = scaler.inverse_transform(np.concatenate((train_predictions, np.zeros((train_predictions.shape[0], 4))), axis=1))[:, 0]
+y_train_actual = scaler.inverse_transform(np.concatenate((y_train.reshape(-1, 1), np.zeros((y_train.shape[0], 4))), axis=1))[:, 0]
+test_predictions = scaler.inverse_transform(np.concatenate((test_predictions, np.zeros((test_predictions.shape[0], 4))), axis=1))[:, 0]
+y_test_actual = scaler.inverse_transform(np.concatenate((y_test.reshape(-1, 1), np.zeros((y_test.shape[0], 4))), axis=1))[:, 0]
+
+# Create prediction data for the frontend
+prediction_data = {
+    'dates': [str(date) for date in data.index[lookback:train_size]],
+    'train_predictions': train_predictions.tolist(),
+    'test_predictions': test_predictions.tolist(),
+    'y_train_actual': y_train_actual.tolist(),
+    'y_test_actual': y_test_actual.tolist()
+}
+
+# Save prediction data as a JSON file
+with open('predictions.json', 'w') as json_file:
+    json.dump(prediction_data, json_file)
+
+print("Predictions saved to predictions.json")
