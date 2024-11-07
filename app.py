@@ -1,50 +1,49 @@
-from flask import Flask, jsonify, render_template
-from tensorflow.keras.models import load_model
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import load_model
 import json
 
-app = Flask(__name__)
-
-# Load model and scaler
+# Load model and dataset
 model = load_model("netflix_lstm_model.h5")
-data = pd.read_csv('NFLX.csv')
+data = pd.read_csv("NFLX.csv")
+
+# Data preprocessing (ensure it matches what you used for training)
+data['Date'] = pd.to_datetime(data['Date'])
+data.set_index('Date', inplace=True)
+data = data[['Close']]
+data['5_MA'] = data['Close'].rolling(window=5).mean()
+data['30_MA'] = data['Close'].rolling(window=30).mean()
+data['Volatility'] = data['Close'].rolling(window=5).std()
+data['Returns'] = data['Close'].pct_change()
+data.dropna(inplace=True)
+
 scaler = MinMaxScaler(feature_range=(0, 1))
-scaler.fit(data[['Close']])
+data_scaled = scaler.fit_transform(data)
 
-def prepare_data():
-    # Apply data preparation steps as in your code, returning data for frontend
-    # ...
-    return {
-        "train_dates": list(train_dates),
-        "test_dates": list(test_dates),
-        "train_actual": list(y_train_actual),
-        "train_predicted": list(train_predictions),
-        "test_actual": list(y_test_actual),
-        "test_predicted": list(test_predictions)
-    }
+# Prepare data
+lookback = 90
+X = []
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+for i in range(lookback, len(data_scaled)):
+    X.append(data_scaled[i - lookback:i])
 
-@app.route("/metrics")
-def metrics():
-    return jsonify({
-        "train_mse": train_mse,
-        "train_mae": train_mae,
-        "train_r2": train_r2,
-        "test_mse": test_mse,
-        "test_mae": test_mae,
-        "test_r2": test_r2
-    })
+X = np.array(X)
 
-@app.route("/data")
-def data():
-    return jsonify(prepare_data())
+# Make predictions
+predictions = model.predict(X)
+predictions_actual = scaler.inverse_transform(np.concatenate((predictions, np.zeros((predictions.shape[0], 4))), axis=1))[:, 0]
 
-app.run(host="0.0.0.0", port=5000, debug=True)
+# Get dates for predictions
+dates = data.index[lookback:]
 
-if __name__ == "__main__":
-    app.run(debug=True)
+# Save to JSON file
+output_data = {
+    "dates": [str(date) for date in dates],
+    "predictions": predictions_actual.tolist()
+}
+
+with open("output.json", "w") as f:
+    json.dump(output_data, f)
+
+print("Predictions saved to output.json")
