@@ -6,31 +6,112 @@
     <title>Netflix Stock Price Prediction</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* Basic Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* General Body Styling */
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header Styling */
+        header {
+            background-color: #343a40;
+            color: white;
+            padding: 20px 0;
             text-align: center;
         }
-        #chartContainer {
-            width: 80%;
-            margin: 0 auto;
-            padding-top: 50px;
+
+        h1 {
+            font-size: 2.5rem;
+            letter-spacing: 1px;
         }
+
+        /* Main Container for Chart */
+        #chartContainer {
+            display: grid;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        canvas {
+            width: 100% !important;
+            max-width: 900px;
+            height: 500px;
+        }
+
+        /* Styling the Chart's Container */
+        .chart-container {
+            width: 100%;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        /* Responsive Styling for Small Screens */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .chart-container {
+                padding: 15px;
+            }
+        }
+
+        /* Styling for Links */
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer Styling */
+        footer {
+            background-color: #343a40;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
+
     </style>
 </head>
 <body>
 
-<h1>Netflix Stock Price Prediction</h1>
-<div id="chartContainer">
+<header>
+    <h1>Netflix Stock Price Prediction</h1>
+    <p>Visualizing predicted vs actual stock prices using an LSTM model.</p>
+</header>
+
+<div id="chartContainer" class="chart-container">
     <canvas id="predictionChart"></canvas>
 </div>
 
+<footer>
+    <p>&copy; 2024 Netflix Stock Prediction | <a href="#">GitHub</a> | <a href="#">Privacy</a></p>
+</footer>
+
 <script>
-    // Load the prediction data from Flask backend
-    fetch("/get_predictions")
+    // Load the prediction data from the predictions.json file
+    fetch("predictions.json")
         .then(response => response.json())
         .then(data => {
             const dates = data.dates;
-            const predictions = data.predictions;
+            const trainPredictions = data.train_predictions;
+            const testPredictions = data.test_predictions;
+            const yTrainActual = data.y_train_actual;
+            const yTestActual = data.y_test_actual;
 
             // Create the chart
             const ctx = document.getElementById("predictionChart").getContext("2d");
@@ -38,16 +119,44 @@
                 type: "line",
                 data: {
                     labels: dates,
-                    datasets: [{
-                        label: "Predicted Price",
-                        data: predictions,
-                        borderColor: "rgba(75, 192, 192, 1)",
-                        backgroundColor: "rgba(75, 192, 192, 0.2)",
-                        fill: true,
-                        borderWidth: 1
-                    }]
+                    datasets: [
+                        {
+                            label: "Actual Train Price",
+                            data: yTrainActual,
+                            borderColor: "#007bff",
+                            backgroundColor: "rgba(0, 123, 255, 0.2)",
+                            fill: true,
+                            borderWidth: 2
+                        },
+                        {
+                            label: "Predicted Train Price",
+                            data: trainPredictions,
+                            borderColor: "#e83e8c",
+                            backgroundColor: "rgba(232, 62, 140, 0.2)",
+                            fill: true,
+                            borderWidth: 2
+                        },
+                        {
+                            label: "Actual Test Price",
+                            data: yTestActual,
+                            borderColor: "#28a745",
+                            backgroundColor: "rgba(40, 167, 69, 0.2)",
+                            fill: true,
+                            borderWidth: 2
+                        },
+                        {
+                            label: "Predicted Test Price",
+                            data: testPredictions,
+                            borderColor: "#fd7e14",
+                            backgroundColor: "rgba(253, 126, 20, 0.2)",
+                            fill: true,
+                            borderWidth: 2
+                        }
+                    ]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         x: {
                             type: "time",
@@ -62,8 +171,21 @@
                         y: {
                             title: {
                                 display: true,
-                                text: "Stock Price"
+                                text: "Stock Price ($)"
+                            },
+                            ticks: {
+                                beginAtZero: false,
+                                callback: function(value) { return '$' + value.toFixed(2); }
                             }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        legend: {
+                            position: 'top',
                         }
                     }
                 }
@@ -71,5 +193,6 @@
         })
         .catch(error => console.error("Error loading prediction data:", error));
 </script>
+
 </body>
 </html>
