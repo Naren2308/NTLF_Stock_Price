@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Prediction</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css">
+</head>
+<body>
+    <section class="section">
+        <div class="container">
+            <h1 class="title">Netflix Stock Price Prediction</h1>
+            <p>Enter custom dates (format: DD-MM-YYYY) separated by commas to predict stock prices.</p>
+
+            <form action="/" method="POST">
+                <div class="field">
+                    <label class="label">Prediction Dates</label>
+                    <div class="control">
+                        <input class="input" type="text" name="dates" placeholder="e.g., 20-11-2024, 25-12-2024" required>
+                    </div>
+                </div>
+                <div class="control">
+                    <button type="submit" class="button is-link">Predict</button>
+                </div>
+            </form>
+
+            {% if image_url %}
+            <div class="section">
+                <h2 class="subtitle">Prediction Results</h2>
+                <img src="{{ url_for('display_image', filename=image_url) }}" alt="Prediction Result">
+                
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Predicted Price (USD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for date, price in predictions %}
+                        <tr>
+                            <td>{{ date }}</td>
+                            <td>${{ "%.2f"|format(price) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</body>
+</html>
