@@ -16,6 +16,7 @@ app.config['PREDICTIONS_FOLDER'] = 'static/predictions'
 
 # Load model and scaler
 model = load_model('lstm_model.h5')
+model.compile(optimizer='adam', loss='mse', metrics=['mae'])
 scaler = joblib.load('scaler.pkl')
 
 # Load and preprocess the dataset
@@ -33,7 +34,6 @@ data.dropna(inplace=True)
 
 # Scale the data with all features
 data_scaled = scaler.transform(data[['Close', '5_MA', '30_MA', 'Volatility', 'Returns']])
-model.compile(optimizer='adam', loss='mse', metrics=['mae']) 
 
 # Define lookback period for the prediction
 lookback = 120
