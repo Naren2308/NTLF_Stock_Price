@@ -16,7 +16,6 @@ app.config['PREDICTIONS_FOLDER'] = 'static/predictions'
 
 # Load model and scaler
 model = load_model('lstm_model.h5')
-model.compile(optimizer='adam', loss='mse', metrics=['mae'])
 scaler = joblib.load('scaler.pkl')
 
 # Load and preprocess the dataset
